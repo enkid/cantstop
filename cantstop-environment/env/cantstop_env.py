@@ -34,6 +34,7 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
         
 
     def reset(self, seed=None, options=None):
+        #print("resetting")
         self.activeplayer = 0
         self.player_boards = [[-1]*12] + [[-1]*12]
         self.temp_board = [-1]*12
@@ -103,8 +104,8 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
                     #print("Position : ", i, " player value:", self.player_boards[self.activeplayer][i]+1, "board_shape ", board_shape[i])
                     win_count = win_count + 1
             if win_count >= 3:
-                print("Got to win on step: ", self.timestep)
-                print(self)
+                #print("Got to win on step: ", self.timestep)
+                #print(self)
                 return True
             else:
                 return False
@@ -118,9 +119,8 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
 
 
         if dice_action == 0 : #no possible move
-            #print("AI picked no possible move")
+            self.activeplayer = abs(self.activeplayer-1)
             self.temp_board = [-1]*12
-            #switch players / add negative reward?
 
         else:
             if dice_action == 132: #setting special case due to way modulo works, probably should find a better ways
@@ -129,9 +129,7 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
             else:
                 dice_tot2 =int( dice_action %12)
                 dice_tot1 =int( dice_action / 12)
-            #print("Making move: ", dice_tot1, " ", dice_tot2, " on temp_board: ", self.temp_board)
-            #print("temporary board levels: dice tot 1 : ", dice_tot1, " ", self.temp_board[dice_tot1], " dice tot 2 : ", dice_tot2, " ", self.temp_board[dice_tot2] )
-
+            
             if dice_tot1 != 0 and self.temp_board[dice_tot1] < board_shape[dice_tot1]:
                 if self.temp_board[dice_tot1] == -1: #add peg to temporary board
                     self.temp_board[dice_tot1] = self.player_boards[self.activeplayer][dice_tot1]
@@ -152,22 +150,23 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
                     if self.temp_board[i] != -1:
                         self.player_boards[self.activeplayer][i] = self.temp_board[i]
                 
-                #print("AI says stop, new player board: ", self.player_boards[self.activeplayer])
-               
                 self.temp_board = [-1]*12
 
                 win = self.win_check()
-                #self.activeplayer = abs(self.activeplayer - 1) let's just use one active player for now
+                if not win:
+                    self.activeplayer = abs(self.activeplayer - 1)
+                
 
             
         
 
         self.terminations = {a: False for a in self.agents}
-        self.rewards = {a:-0.01 for a in self.agents} #trying to win as fast as possible. This sohould be a good baseline, but eventually we will want to make it adversarial
+        #self.rewards = {a:-0.01 for a in self.agents} #trying to win as fast as possible. This sohould be a good baseline, but eventually we will want to make it adversarial
 
         if win:
-                self.rewards = {a:1 for a in self.agents}
-                self.terminations = {a: True for a in self.agents}
+                if self.activeplayer == 0:
+                    self.rewards = {"continue" : 1}
+                self.terminations = {"continue": True}
 
         #Should I have a truncation?
         self.truncations = {a: False for a in self.agents}

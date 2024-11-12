@@ -7,7 +7,6 @@ class CantStopActionMask:
     def __init__(self, dicerolls, temp_board): #dicerolls should be a list of four numbers, 1-6, which will be used to determine possible combinations
                                             #temp_board will be used to determine what roles could be used with the current board, and should be an 12-length array
                                             # Adding extra length to temp_board to make indexing easier 
-        #print("temp_board", temp_board)
         temp_placed = sum(i >= 0 for i in temp_board[1:]) #count number of temporary pieces placed which will affect what actions will be masked
         
         self.mask = [0]*144
@@ -23,7 +22,6 @@ class CantStopActionMask:
 
         if temp_placed <= 1:
             for i in raw_tots:
-                #print(i)
                 self.mask[i[0]*12+i[1]] = 1 #all rolls are possible
 
         elif temp_placed == 2:
@@ -51,7 +49,6 @@ class CantStopActionMask:
                     self.mask[i[1]] = 1
 
         if sum(self.mask) == 0:
-            print("No Possible Move dice rolls: ", dicerolls, " temp board: ", temp_board)
             self.mask[0]=1 #set action for no other possible action
 
 
