@@ -64,6 +64,8 @@ class DumbAgent: #Just uses a rank order of possible moves and a set time to com
         options_weights = [self.new_weights[i] for i in options]
         return self.new_weights.index(max(options_weights))
 
+
+#class that picks random thing to do out of possible actions
 class RandomAgent():
     def __init__(self):
         pass
@@ -80,4 +82,7 @@ class RandomAgent():
     def get_cont_action(self):
         return random.randint(0, 1)
 
+
+
+class NNAgent():
 
