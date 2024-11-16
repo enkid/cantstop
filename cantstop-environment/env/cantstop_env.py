@@ -1,3 +1,5 @@
+
+import numpy as np
 from pettingzoo import ParallelEnv
 
 from cantstop_mask import CantStopActionMask
@@ -33,6 +35,9 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
         self.timestep = None
         
 
+    def board_shape(self):
+        return board_shape
+
     def reset(self, seed=None, options=None):
         #print("resetting")
         self.activeplayer = 0
@@ -49,17 +54,12 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
         self.infos = {agent: {} for agent in self.agents}
 
 
-        observation = {
-            a: (
-                self.activeplayer,
-                self.player_boards,
-                self.temp_board,
-            )
-            for a in self.agents
-        }
+        flat_player_boards = np.concatenate(np.array(self.player_boards))
+        observation = np.concatenate( (np.array([self.activeplayer]), flat_player_boards, np.array(self.temp_board)))
+        
 
         dicerolls = [ random.randint(1,6) for _ in range(4)] #get the dice rolls
-
+        self.dicerolls = dicerolls
         action_mask = CantStopActionMask(dicerolls, self.temp_board)
         #print("action mask line 63:", action_mask)
 
@@ -70,10 +70,14 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
 
         return self.observations, self.infos
 
-    
+
     def __str__(self):
-        board_str = "2 3 4 5 6 7 8 9 101112\n"
-        for v in range(1, max(board_shape)+1): #skip first item, which should always be zero anyways.
+        board_str = f"Active Player: {self.activeplayer}\n"
+        board_str += f"Dice Rolls {self.dicerolls}\n"
+        board_str += f"Active Player board {self.player_boards[self.activeplayer]} \n"
+        board_str += f"Inactive Player board {self.player_boards[abs(self.activeplayer - 1)]}\n"
+        board_str += "2 3 4 5 6 7 8 9 101112\n"
+        for v in range( max(board_shape)+1): 
             line = ""
             for h in range(1, len(board_shape)):
                 if board_shape[h] >= v:
@@ -123,12 +127,12 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
             self.temp_board = [-1]*12
 
         else:
-            if dice_action == 132: #setting special case due to way modulo works, probably should find a better ways
-                dice_tot2 = 11
-                dice_tot1 = 11
-            else:
-                dice_tot2 =int( dice_action %12)
-                dice_tot1 =int( dice_action / 12)
+            #if dice_action == 132: #setting special case due to way modulo works, probably should find a better ways --- don't think i need this anymore
+            #    dice_tot2 = 11
+            #    dice_tot1 = 11
+            #else:
+            dice_tot2 =int( dice_action %12)
+            dice_tot1 =int( dice_action / 12)
             
             if dice_tot1 != 0 and self.temp_board[dice_tot1] < board_shape[dice_tot1]:
                 if self.temp_board[dice_tot1] == -1: #add peg to temporary board
@@ -145,6 +149,8 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
 
             
             if continue_action == 0: #agent says stop
+
+                #todo - for some reason gains are getting locked in for last choice...?
 
                 for i in range(1, len( self.temp_board)): #make temporary advancement permament
                     if self.temp_board[i] != -1:
@@ -166,25 +172,21 @@ class CantstopEnvironment(ParallelEnv): #need to figure out how to integrate mul
         if win:
                 if self.activeplayer == 0:
                     self.rewards = {"continue" : 1}
+                else:
+                    self.rewards = {"continue" : -1}
                 self.terminations = {"continue": True}
 
         #Should I have a truncation?
         self.truncations = {a: False for a in self.agents}
         self.timestep += 1
 
-
-        observation = {
-            a: (
-                self.activeplayer,
-                self.player_boards,
-                self.temp_board,
-            )
-            for a in self.possible_agents
-        }
+        flat_player_boards = np.concatenate(np.array(self.player_boards))
+        observation = np.concatenate( (np.array([self.activeplayer]), flat_player_boards, np.array(self.temp_board)))
+        
 
         
         dicerolls = [ random.randint(1,6) for _ in range(4)] #get the dice rolls
-
+        self.dicerolls = dicerolls
         action_mask = CantStopActionMask(dicerolls, self.temp_board)
 
         self.observations = {
